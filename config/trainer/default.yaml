@@ -1,0 +1,16 @@
+# @package _global_
+trainer:
+    metric: val_loss
+    mode: min
+    use_gpu: True
+    max_epochs: 200
+    use_logger: True
+    use_early_stopping: True
+    use_model_checkpoint: True
+    args:
+        max_epochs: ${trainer.max_epochs}
+        gpus: 1
+        weights_summary: 'full'
+        #auto_select_gpus: True #複数GPUがあるときにつかうのか？
+        #auto_lr_find: ??
+        #auto_scale_batch_size: ??

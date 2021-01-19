@@ -1,0 +1,7 @@
+# @package _global_
+defaults:
+  - model: autoencoder
+  - data: EEG
+  - logger: mlflow
+  - trainer: default
+  - callbacks: default
