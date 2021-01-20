@@ -123,8 +123,13 @@ class TSDatasetBase(object):
             if OmegaConf.is_list(datafiles):
                 datafiles = OmegaConf.to_container(datafiles)
             if type(datafiles) is list:
-                data_path = [(data_path / file) for file in datafiles]
-                self.data_file_paths = [file.resolve() for file in data_path]               
+                data_file_paths = []
+                for file in datafiles:
+                    data_path_tmp = data_path / file
+                    if not data_path_tmp.exists():
+                        data_path_tmp = data_path.parent / file
+                    data_file_paths.append(data_path_tmp)
+                self.data_file_paths = [file.resolve() for file in data_file_paths]              
             else:
                 data_path_tmp = data_path / datafiles
                 if not data_path_tmp.exists():
