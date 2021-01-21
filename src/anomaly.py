@@ -24,7 +24,10 @@ class AnomalyDetector(object):
         # logger instance の生成
         self.logger = instantiate(cfg.logger)
         # jupyter だと validation の progressbar で無駄な改行が発生を削るため
-        self.progressbar = MyProgressBar()
+        if 'progress_bar_refresh_rate' in self.config.trainer.args:
+            self.progressbar = MyProgressBar(self.config.trainer.args.progress_bar_refresh_rate)
+        else:
+            self.progressbar = MyProgressBar()
         
         # trainer 用 instance の生成
         self.early_stopping = None
@@ -61,7 +64,7 @@ class AnomalyDetector(object):
         else:
             self.config.trainer.args.gpus = 0
         
-        if self.config.use_earlystopping is not None:
+        if self.config.trainer.use_early_stopping is not None:
             self.trainer = pl.Trainer(logger=self.logger,
                                       callbacks=[self.early_stopping, self.model_checkpoint, self.progressbar],
                                       **(self.config.trainer.args))

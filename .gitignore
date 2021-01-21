@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# self
+mlruns/*
+optuna_runs/*.db
