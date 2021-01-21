@@ -11,6 +11,7 @@ trainer:
         max_epochs: ${trainer.max_epochs}
         gpus: 1
         weights_summary: 'full'
+        progress_bar_refresh_rate: 20
         #auto_select_gpus: True #複数GPUがあるときにつかうのか？
         #auto_lr_find: ??
         #auto_scale_batch_size: ??

@@ -46,7 +46,10 @@ class AD_ParametersSearch(object):
         self.model_checkpoint = instantiate(self.config.callbacks.ModelCheckpoint) 
         
         self.metrics_callback = MetricsCallback()
-        self.progressbar = MyProgressBar()
+        if 'progress_bar_refresh_rate' in self.config.trainer.args:
+            self.progressbar = MyProgressBar(self.config.trainer.args.progress_bar_refresh_rate)
+        else:
+            self.progressbar = MyProgressBar()
         self.create_trainer()
         self.init_model()
         

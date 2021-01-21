@@ -18,8 +18,8 @@ class MetricsCallback(Callback):
         self.metrics.append(trainer.callback_metrics)
 
 class MyProgressBar(ProgressBar):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args,**kwargs)
         
     def init_validation_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for validation. """
