@@ -116,6 +116,11 @@ class AnomalyDetector(object):
         if run_id is None and self.model_checkpoint.best_model_path is not None:
             checkpoint_file = self.model_checkpoint.best_model_path
         
+        if torch.cuda.is_available() and self.config.trainer.use_gpu:
+            self.config.trainer.args.gpus = 1
+        else:
+            self.config.trainer.args.gpus = 0
+        
         if self.early_stopping is None:
             self.trainer = pl.Trainer(resume_from_checkpoint=checkpoint_file, logger=logger, 
                                       callbacks=[self.model_checkpoint, self.progressbar],

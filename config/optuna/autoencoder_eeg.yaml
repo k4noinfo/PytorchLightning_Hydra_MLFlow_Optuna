@@ -5,7 +5,7 @@ optuna:
     net:
         z_dim: 
             min: 2
-            max: 10
+            max: 6
         n_layers:
             min: 1
             max: 4
@@ -14,7 +14,7 @@ optuna:
             max: 0.0
         hidden_size:
             min: 4
-            max: 32
+            max: 12
     optimizer:
         lr:
             min: 1e-6
