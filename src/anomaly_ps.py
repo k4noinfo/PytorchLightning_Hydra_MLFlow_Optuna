@@ -16,6 +16,10 @@ class AD_ParametersSearch(object):
     def __init__(self, cfg, dm):
         self.config = cfg
         self.dm = dm
+        
+        self.early_stopping  = None
+        self.model_checkpoint = None
+        
         pruner = optuna.pruners.MedianPruner()
         if 'storage' in self.config.optuna.study:
             optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
@@ -74,16 +78,13 @@ class AD_ParametersSearch(object):
         else:
             self.config.trainer.args.gpus = 0
         
+        callbacks=[self.progressbar]
         if self.early_stopping is not None:
-            self.trainer = pl.Trainer(logger=self.logger,
-                                      callbacks=[self.early_stopping, self.model_checkpoint, self.progressbar,
-                                                 self.metrics_callback, PyTorchLightningPruningCallback(self.trial, monitor='val_loss')],
-                                      **(self.config.trainer.args))
-        else:
-            self.trainer = pl.Trainer(logger=self.logger,
-                                      callbacks=[self.model_checkpoint, self.progressbar,
-                                                 self.metrics_callback, PyTorchLightningPruningCallback(self.trial, monitor='val_loss')], 
-                                      **(self.config.trainer.args))    
+            callbacks.append(self.early_stopping)
+        if self.model_checkpoint is not None:
+            callbacks.append(self.model_checkpoint)
+        
+        self.trainer = pl.Trainer(logger=self.logger, callbacks=callbacks, **(self.config.trainer.args))
     
     def _get_model_path(self, save_dir, experiment_id=None, run_id=None):
         path = Path(save_dir)/experiment_id/run_id/'artifacts'/'models'

@@ -17,7 +17,7 @@ class AnomalyDetector(object):
         self.config = cfg
         self.logger = None
         self.early_stopping  = None
-        self.modelcheckpoint = None
+        self.model_checkpoint = None
         
         self.init_model()
         
@@ -64,14 +64,13 @@ class AnomalyDetector(object):
         else:
             self.config.trainer.args.gpus = 0
         
-        if self.config.trainer.use_early_stopping is not None:
-            self.trainer = pl.Trainer(logger=self.logger,
-                                      callbacks=[self.early_stopping, self.model_checkpoint, self.progressbar],
-                                      **(self.config.trainer.args))
-        else:
-            self.trainer = pl.Trainer(logger=self.logger,
-                                      callbacks=[self.model_checkpoint, self.progressbar], 
-                                      **(self.config.trainer.args))
+        callbacks=[self.progressbar]
+        if self.early_stopping is not None:
+            callbacks.append(self.early_stopping)
+        if self.model_checkpoint is not None:
+            callbacks.append(self.model_checkpoint)
+        
+        self.trainer = pl.Trainer(logger=self.logger, callbacks=callbacks, **(self.config.trainer.args))
         
     def train(self, train_dataloader=None, val_dataloader=None, dm=None, step=0, max_epochs=None):
         """Train
@@ -121,14 +120,13 @@ class AnomalyDetector(object):
         else:
             self.config.trainer.args.gpus = 0
         
-        if self.early_stopping is None:
-            self.trainer = pl.Trainer(resume_from_checkpoint=checkpoint_file, logger=logger, 
-                                      callbacks=[self.model_checkpoint, self.progressbar],
-                                      **(self.config.trainer.args))
-        else:
-            self.trainer = pl.Trainer(resume_from_checkpoint=checkpoint_file, logger=logger, 
-                                      callbacks=[self.early_stopping, self.model_checkpoint, self.progressbar],
-                                      **(self.config.trainer.args))
+        callbacks=[self.progressbar]
+        if self.early_stopping is not None:
+            callbacks.append(self.early_stopping)
+        if self.model_checkpoint is not None:
+            callbacks.append(self.model_checkpoint)
+        
+        self.trainer = pl.Trainer(logger=self.logger, callbacks=callbacks, **(self.config.trainer.args))
     
     def train_from(self, n_epoch, max_epochs=None, 
                    logger=None, 
