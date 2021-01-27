@@ -130,7 +130,7 @@ class AutoEncoder(pl.LightningModule):
             
         error_vec = (recon_x - x).abs()
         if self.config.data.input_vec == 'time':
-            aomaly_score = error_vec.sum(-1, keepdim=False).cpu().data.numpy()
+            anomaly_score = error_vec.sum(-1, keepdim=False).cpu().data.numpy()
         elif self.config.data.input_vec == 'features':
             anomaly_score = error_vec.sum(axis=1, keepdim=False).cpu().data.numpy()
         else:

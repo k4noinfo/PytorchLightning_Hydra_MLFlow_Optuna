@@ -109,6 +109,8 @@ class AnomalyDetector(object):
                 checkpoint_file = f'model-epoch={n_epoch}.ckpt'
         else:
             checkpoint_file = f'model-epoch={n_epoch}.ckpt'
+            if n_epoch < self.config.trainer.max_epochs:
+                self.config.trainer.max_epochs = n_epochs + 1
 
         checkpoint_file = str(folder_path/checkpoint_file)
         
@@ -149,12 +151,18 @@ class AnomalyDetector(object):
         """Compute loss and metrics on val set"""
         pass
 
-    def test(self, test_dataloader=None, dm=None):
+    def test(self, test_dataloader=None, dm=None, max_epochs=None):
         """Compute loss and metrics on test set"""
         # Trainer を resume したとき、なぜか test も resume して行おうとするため、以下の処理を追加... なんでこんな仕様？
-        if self.trainer.resume_from_checkpoint is not None:
+        if len(self.trainer.resume_from_checkpoint) != 0:
             if self.model_checkpoint.best_model_path != self.trainer.resume_from_checkpoint:
-                self.trainer.resume_best_checkpoint = self.model_checkpoint.best_model_path
+                self.trainer.resume_from_checkpoint = self.model_checkpoint.best_model_path
+        
+        # need to set current number of epochs under the trainer.max_epochs 
+        if max_epochs is not None:
+            if self.trainer.max_epochs < max_epochs:
+                self.trainer.max_epochs = max_epochs
+                
         if test_dataloader is not None:
             self.trainer.test(self.model, test_dataloaders=test_dataloader)
         elif dm is not None:
