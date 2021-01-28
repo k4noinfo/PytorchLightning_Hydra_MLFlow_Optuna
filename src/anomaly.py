@@ -128,7 +128,8 @@ class AnomalyDetector(object):
         if self.model_checkpoint is not None:
             callbacks.append(self.model_checkpoint)
         
-        self.trainer = pl.Trainer(logger=self.logger, callbacks=callbacks, **(self.config.trainer.args))
+        self.trainer = pl.Trainer(resume_from_checkpoint=checkpoint_file,
+                                  logger=self.logger, callbacks=callbacks, **(self.config.trainer.args))
     
     def train_from(self, n_epoch, max_epochs=None, 
                    logger=None, 
