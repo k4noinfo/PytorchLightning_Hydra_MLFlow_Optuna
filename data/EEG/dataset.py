@@ -91,13 +91,14 @@ class TSDataset(torch.utils.data.Dataset, TSDatasetBase):
             if self._x is None:
                 self._x = data
             else:
-                np.append(self._x, np.array(data), axis=0)
+                self._x = np.append(self._x, np.array(data), axis=0)
                 
             if self._y is None:
                 self._y = label
             else:
-                np.append(self._y, label, axis=0)
-            print('(x,y):', self._x.shape, self._y.shape)
+                self._y = np.append(self._y, label, axis=0)
+            print(mode, ' (x,y): ', data.shape, label.shape)
+        print(mode, 'total: (x,y): ', self._x.shape, self._y.shape)
         
         if len(self._x) != len(self._y):
             try:
