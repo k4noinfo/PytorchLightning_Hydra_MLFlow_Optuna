@@ -1,7 +1,9 @@
 from pathlib import Path
+from distutils.version import StrictVersion
 
 import torch
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 from hydra.utils import instantiate
 
@@ -93,6 +95,11 @@ class AnomalyDetector(object):
                   logger=None, 
                   save_dir=None, experiment_id=None, run_id=None):
         """restart to train the model from step for num_epochs"""
+        if self.model.anomaly_scores is not None:
+            self.model.anomaly_scores = None
+        if self.model.recon_x is not None:
+            self.model.recon_x = None
+        
         if logger is None:
             logger = self.logger
          
@@ -109,13 +116,15 @@ class AnomalyDetector(object):
                 checkpoint_file = f'model-epoch={n_epoch}.ckpt'
         else:
             checkpoint_file = f'model-epoch={n_epoch}.ckpt'
-            if n_epoch < self.config.trainer.max_epochs:
-                self.config.trainer.max_epochs = n_epochs + 1
+            if n_epoch > self.config.trainer.max_epochs:
+                self.config.trainer.max_epochs = n_epoch + 1
 
-        checkpoint_file = str(folder_path/checkpoint_file)
+        ckpt_path = str(folder_path/checkpoint_file)
+        ckpt = pl_load(ckpt_path, map_location=lambda storage,loc: storage)
+        self.model.load_state_dict(ckpt['state_dict'])
         
         if run_id is None and self.model_checkpoint.best_model_path is not None:
-            checkpoint_file = self.model_checkpoint.best_model_path
+            ckpt_path = self.model_checkpoint.best_model_path
         
         if torch.cuda.is_available() and self.config.trainer.use_gpu:
             self.config.trainer.args.gpus = 1
@@ -127,8 +136,8 @@ class AnomalyDetector(object):
             callbacks.append(self.early_stopping)
         if self.model_checkpoint is not None:
             callbacks.append(self.model_checkpoint)
-        
-        self.trainer = pl.Trainer(resume_from_checkpoint=checkpoint_file,
+            
+        self.trainer = pl.Trainer(resume_from_checkpoint=ckpt_path,
                                   logger=self.logger, callbacks=callbacks, **(self.config.trainer.args))
     
     def train_from(self, n_epoch, max_epochs=None, 
@@ -155,9 +164,6 @@ class AnomalyDetector(object):
     def test(self, test_dataloader=None, dm=None, max_epochs=None):
         """Compute loss and metrics on test set"""
         # Trainer を resume したとき、なぜか test も resume して行おうとするため、以下の処理を追加... なんでこんな仕様？
-        if len(self.trainer.resume_from_checkpoint) != 0:
-            if self.model_checkpoint.best_model_path != self.trainer.resume_from_checkpoint:
-                self.trainer.resume_from_checkpoint = self.model_checkpoint.best_model_path
         
         # need to set current number of epochs under the trainer.max_epochs 
         if max_epochs is not None:
@@ -175,10 +181,6 @@ class AnomalyDetector(object):
         -------------------------
         anomaly_score list(batch_size, features)
         '''
-        if self.trainer.resume_from_checkpoint is not None:
-            if self.model_checkpoint.best_model_path != self.trainer.resume_from_checkpoint:
-                self.trainer.resume_from_checkpoint = self.model_checkpoint.best_model_path
-                
         if self.model.anomaly_scores is None:
             self.test(dataloader, dm)
         return self.model.anomaly_scores
@@ -187,7 +189,11 @@ class AnomalyDetector(object):
         if self.model.recon_x is None:
             self.test(dataloader, dm)
         return self.model.recon_x
-                    
+    
+    def reset_score(self):
+        self.model.anomaly_scores = None
+        self.model.recon_x = None
+        
     def predict(self, dataloader=None, dm=None):
         """Make prediction from the specified file
         Args:
