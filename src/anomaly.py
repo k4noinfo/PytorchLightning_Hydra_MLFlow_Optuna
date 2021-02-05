@@ -119,13 +119,15 @@ class AnomalyDetector(object):
             if n_epoch > self.config.trainer.max_epochs:
                 self.config.trainer.max_epochs = n_epoch + 1
 
+        # 本当は n_epoch が best かどうかを判定したほうがよさそう
         ckpt_path = str(folder_path/checkpoint_file)
+        if run_id is None and self.model_checkpoint.best_model_path is not None:
+            if len(self.model_checkpoint.best_model_path) != 0:
+                ckpt_path = self.model_checkpoint.best_model_path
+        
         ckpt = pl_load(ckpt_path, map_location=lambda storage,loc: storage)
         self.model.load_state_dict(ckpt['state_dict'])
-        
-        if run_id is None and self.model_checkpoint.best_model_path is not None:
-            ckpt_path = self.model_checkpoint.best_model_path
-        
+                
         if torch.cuda.is_available() and self.config.trainer.use_gpu:
             self.config.trainer.args.gpus = 1
         else:
@@ -162,6 +164,8 @@ class AnomalyDetector(object):
         pass
 
     def test(self, test_dataloader=None, dm=None, max_epochs=None):
+        self.model.anomaly_scores = None if self.model.anomaly_scores is not None else None
+        self.model.recon_x = None if self.model.recon_x is not None else None
         """Compute loss and metrics on test set"""
         # Trainer を resume したとき、なぜか test も resume して行おうとするため、以下の処理を追加... なんでこんな仕様？
         
