@@ -14,3 +14,5 @@ pytorch-lightning を使用したモデル作成の際の設定ファイルな�
 
 本レポジトリでは、サンプルデータとして EEG Database Data Set を利用しておりますが、本データの所有者は Henri Begleiter さんになります。
 https://archive.ics.uci.edu/ml/datasets/eeg+database
+
+test
