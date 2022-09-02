@@ -6,6 +6,7 @@ model:
     optimizer:
         _target_: torch.optim.Adam
         lr: 1e-5
+        capturable: True
         #amsgrad: False
         #betas: (0.8, 0.888) # tupleを表現する方法がわからない
     net:

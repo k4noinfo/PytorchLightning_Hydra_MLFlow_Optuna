@@ -2,5 +2,6 @@
 logger:
     _target_: pytorch_lightning.loggers.MLFlowLogger
     experiment_name: example
+    tracking_uri: http://g21.heroz.local:5000/
     save_dir: ./mlruns
-    #tracking_uri: "file:./../mlruns"
+    artifact_location : ./mlruns

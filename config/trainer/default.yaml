@@ -9,9 +9,15 @@ trainer:
     use_model_checkpoint: True
     args:
         max_epochs: ${trainer.max_epochs}
-        gpus: 1
-        weights_summary: 'full'
-        progress_bar_refresh_rate: 20
-        #auto_select_gpus: True #複数GPUがあるときにつかうのか？
+        accelerator: gpu
+        devices: 8
+        # gpus: 1 #  will be removed in v2.0
+        # weights_summary: 'full' # ModelSummary Callback が導入されたことでつかえなくなったぽい
+        # progress_bar_refresh_rate: 1
+        # refresh_rate: 1
+        auto_select_gpus: True #複数GPUがあるときにつかうのか？
+        enable_checkpointing: True
+        default_root_dir: ${logger.save_dir}
+        # profiler = "simple" #{"simple"|"advanced"|"pytorch"}
         #auto_lr_find: ??
         #auto_scale_batch_size: ??

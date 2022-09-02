@@ -7,7 +7,8 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 from hydra.utils import instantiate
 
-from src.utils.callbacks import MyProgressBar
+from src.utils.callbacks import LitTQDMProgressBar
+from src.utils.callbacks import LitProgressBar
 
 class AnomalyDetector(object):
     """Class for anomaly detection experiments"""
@@ -25,18 +26,21 @@ class AnomalyDetector(object):
         
         # logger instance の生成
         self.logger = instantiate(cfg.logger)
+        # pl 1.7.0 の時点で progressbar の callback が変わってしまったため削除
         # jupyter だと validation の progressbar で無駄な改行が発生を削るため
-        if 'progress_bar_refresh_rate' in self.config.trainer.args:
-            self.progressbar = MyProgressBar(self.config.trainer.args.progress_bar_refresh_rate)
-        else:
-            self.progressbar = MyProgressBar()
-        
+        #if 'progress_bar_refresh_rate' in self.config.trainer.args:
+        #    self.progressbar = MyProgressBar(self.config.trainer.args.progress_bar_refresh_rate)
+        #else:
+        #    self.progressbar = MyProgressBar()
+        self.progressbar = instantiate(cfg.callbacks.ProgressBar)
+
         # trainer 用 instance の生成
         self.early_stopping = None
         if self.config.trainer.use_early_stopping:
             self.early_stopping = instantiate(cfg.callbacks.EarlyStopping)
         
-        model_log_dir = str(self._get_model_path(self.logger.save_dir, self.logger.experiment_id, self.logger.run_id))
+        save_dir = cfg.logger.save_dir if self.logger.save_dir is None else self.logger.save_dir
+        model_log_dir = str(self._get_model_path(save_dir, self.logger.experiment_id, self.logger.run_id))
         if 'dirpath' in self.config.callbacks.ModelCheckpoint:
             self.config.callbacks.ModelCheckpoint.dirpath = model_log_dir
         self.model_checkpoint = instantiate(cfg.callbacks.ModelCheckpoint)
@@ -53,18 +57,24 @@ class AnomalyDetector(object):
         #self.model = instantiate(cfg.model.instance, cfg=cfg.model)
         self.model = eval(self.config.model.name)(self.config.model)
         print(self.model)
-
         
         
     def create_trainer(self, max_epochs=2):
         
         if max_epochs is not None:
-            self.config.trainer.max_epochs = max_epochs
+            self.config.trainer.args.max_epochs = max_epochs
         
         if torch.cuda.is_available() and self.config.trainer.use_gpu:
-            self.config.trainer.args.gpus = 1
+            if 'gpus' in self.config.trainer.args:
+                self.config.trainer.args.gpus = 1 # ver 2 以降はなくなるらしい
+            else:
+                self.config.trainer.args.accelerator = 'gpu'
+                self.config.trainer.args.devices = 1
         else:
-            self.config.trainer.args.gpus = 0
+            if 'gpus' in self.config.trainer.args:
+                self.config.trainer.args.gpus = 0
+            else:
+                self.config.trainer.args.accelerator = 'cpu'
         
         callbacks=[self.progressbar]
         if self.early_stopping is not None:
@@ -106,7 +116,9 @@ class AnomalyDetector(object):
         if not (run_id is None):
             folder_path = self._get_model_path(save_dir, experiment_id, run_id)
         else:
-            folder_path = self._get_model_path(logger.save_dir, logger.experiment_id, logger.run_id)
+            # mlflow が db を使っていると save_dir が None になるため
+            save_dir = self.config.logger.save_dir if self.logger.save_dir is None else self.logger.save_dir
+            folder_path = self._get_model_path(save_dir, logger.experiment_id, logger.run_id)
         
         if n_epoch == 'last':
             if (folder_path/'last.ckpt').exists():
@@ -116,8 +128,8 @@ class AnomalyDetector(object):
                 checkpoint_file = f'model-epoch={n_epoch}.ckpt'
         else:
             checkpoint_file = f'model-epoch={n_epoch}.ckpt'
-            if n_epoch > self.config.trainer.max_epochs:
-                self.config.trainer.max_epochs = n_epoch + 1
+            if n_epoch > self.config.trainer.args.max_epochs:
+                self.config.trainer.args.max_epochs = n_epoch + 1
 
         # 本当は n_epoch が best かどうかを判定したほうがよさそう
         ckpt_path = str(folder_path/checkpoint_file)
@@ -125,37 +137,52 @@ class AnomalyDetector(object):
             if len(self.model_checkpoint.best_model_path) != 0:
                 ckpt_path = self.model_checkpoint.best_model_path
         
-        ckpt = pl_load(ckpt_path, map_location=lambda storage,loc: storage)
+        '''
+        ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
+        print(ckpt)
         self.model.load_state_dict(ckpt['state_dict'])
-                
+        
         if torch.cuda.is_available() and self.config.trainer.use_gpu:
-            self.config.trainer.args.gpus = 1
+            if 'gpus' in self.config.trainer.args:
+                self.config.trainer.args.gpus = 1 # ver 2 以降はなくなるらしい
+            else:
+                self.config.trainer.args.accelerator = 'gpu'
+                self.config.trainer.args.devices = 1
         else:
-            self.config.trainer.args.gpus = 0
+            if 'gpus' in self.config.trainer.args:
+                self.config.trainer.args.gpus = 0
+            else:
+                self.config.trainer.args.accelerator = 'cpu'
         
         callbacks=[self.progressbar]
         if self.early_stopping is not None:
             callbacks.append(self.early_stopping)
         if self.model_checkpoint is not None:
             callbacks.append(self.model_checkpoint)
-            
+        
+        print(self.config.trainer.args)
         self.trainer = pl.Trainer(resume_from_checkpoint=ckpt_path,
                                   logger=self.logger, callbacks=callbacks, **(self.config.trainer.args))
-    
+        '''
+        return ckpt_path
+
     def train_from(self, n_epoch, max_epochs=None, 
                    logger=None, 
                    save_dir=None, experiment_id=None, run_id=None,
                    train_dataloader=None, val_dataloader=None, dm=None):
         
-        if max_epochs is not None:
-            self.config.trainer.max_epochs = max_epochs
+        #if max_epochs is not None:
+        #    self.config.trainer.args.max_epochs = max_epochs
         
-        self.load_ckpt(n_epoch, logger, save_dir, experiment_id, run_id)
+        ckpt_path = self.load_ckpt(n_epoch, logger, save_dir, experiment_id, run_id)
         
+        if not hasattr(self,'trainer'):
+            self.create_trainer(max_epochs)
+
         if dm is not None:
-            self.trainer.fit(self.model, dm)
+            self.trainer.fit(self.model, datamodule=dm, ckpt_path = ckpt_path)
         else:
-            self.trainer.fit(self.model, train_dataloader, val_dataloader)
+            self.trainer.fit(self.model, train_dataloader, val_dataloader, ckpt_path = ckpt_path)
         #metric, best_metric = self.load_weight(step)
         #self.train(train_dataloader, val_dataloader, step=step, num_epochs=num_epochs, best_metric=best_metric)
 

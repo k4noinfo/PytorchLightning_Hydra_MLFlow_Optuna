@@ -10,7 +10,7 @@ import logging
 import optuna
 from optuna.integration import PyTorchLightningPruningCallback
 
-from src.utils.callbacks import MetricsCallback, MyProgressBar
+from src.utils.callbacks import MetricsCallback#, MyProgressBar
 
 class AD_ParametersSearch(object):
     def __init__(self, cfg, dm):

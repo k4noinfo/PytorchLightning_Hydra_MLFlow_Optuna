@@ -2,7 +2,7 @@ import yaml
 import hydra
 
 from omegaconf import OmegaConf
-from hydra.experimental import initialize, compose
+from hydra import initialize, compose
 
 def load_config(config_path:str='config', config_file:str='config', overrides:dict=None):
     """
@@ -13,11 +13,11 @@ def load_config(config_path:str='config', config_file:str='config', overrides:di
         config (dict):
     """
     try:
-        initialize(f'../../{config_path}')
+        initialize(f'../../{config_path}', version_base=None)
     except ValueError:
         from hydra.core.global_hydra import GlobalHydra
         GlobalHydra.instance().clear()
-        initialize(f'../../{config_path}')
+        initialize(f'../../{config_path}', version_base=None)
 
     if overrides is not None:
         cfg = compose(config_name=config_file, overrides=overrides)

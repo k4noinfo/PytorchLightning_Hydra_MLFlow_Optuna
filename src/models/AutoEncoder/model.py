@@ -89,7 +89,8 @@ class AutoEncoder(pl.LightningModule):
         loss = self.loss(recon_x, x, reduction='sum')
         
         # 学習を resume したときに step が保存されていないとリセットされてしまうため
-        loss_dict = {'loss': loss.item(), 'step': self.global_step}
+        #loss_dict = {'loss': loss.item(), 'step': self.global_step}
+        loss_dict = {'loss': loss.item()}
         self.log_dict(loss_dict)
         return loss
     
@@ -110,7 +111,7 @@ class AutoEncoder(pl.LightningModule):
         loss = self.loss(recon_x, x, reduction='sum')
         
         loss_dict = {'val_loss':loss.item()}
-        self.log_dict(loss_dict, prog_bar=True)
+        self.log_dict(loss_dict)
     
     # multi-gpu とかの場合につかうようす
     # def validation_step_end(self, training_step_output)
