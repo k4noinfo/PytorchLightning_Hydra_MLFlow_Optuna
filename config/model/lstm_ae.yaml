@@ -1,0 +1,15 @@
+name: LSTM_AE
+use_scheduler: False
+instance:
+  _target_: ad.models.${model.name}.model.${model.name} # 未使用
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.0005
+  #amsgrad: False
+  #betas: (0.8, 0.888) # tupleを表現する方法がわからない
+net:
+  hidden_size: 32
+  num_layers: 1
+  dropout: 0.0
+  batch_size: ${data.train.batch_size}
+data: ${data}

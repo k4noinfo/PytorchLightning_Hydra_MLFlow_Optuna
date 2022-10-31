@@ -1,20 +1,18 @@
-# @package _global_
-model:
-    name: AutoEncoder
-    instance:
-        _target_: src.models.${model.name}.model.${model.name} # 未使用
-    optimizer:
-        _target_: torch.optim.Adam
-        lr: 1e-5
-        capturable: True
-        #amsgrad: False
-        #betas: (0.8, 0.888) # tupleを表現する方法がわからない
-    net:
-        hidden_size: [16, 8, 4]
-        z_dim: 4
-        dropout: 0
-        batch_size: ${data.train.batch_size}
-    data: 
-        window_size: ${data.window_size}
-        feature_cols: ${data.feature_cols}
-        input_vec: ${data.input_vec}
+name: AutoEncoder
+instance:
+    _target_: src.models.${model.name}.model.${model.name} # 未使用
+optimizer:
+    _target_: torch.optim.Adam
+    lr: 1e-5
+    capturable: True
+    #amsgrad: False
+    #betas: (0.8, 0.888) # tupleを表現する方法がわからない
+net:
+    hidden_size: [16, 8, 4]
+    z_dim: 4
+    dropout: 0
+    batch_size: ${data.train.batch_size}
+data: 
+    window_size: ${data.window_size}
+    feature_cols: ${data.feature_cols}
+    input_vec: ${data.input_vec}
